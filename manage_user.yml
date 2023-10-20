@@ -1,0 +1,42 @@
+
+---
+- name: Create user automation on all managed hosts
+  hosts: ansible[1-4]*
+  become: true
+  vars_files:
+    - creds.yml
+  tasks:
+    - name: Creating the user 
+      ansible.builtin.user:
+        name: "{{ username }}"
+        password: "{{ password | password_hash('sha512') }}"
+        state: present
+        update_password: on_create
+
+    - name: Allow automation user to elevate privileges without a password
+      ansible.builtin.lineinfile:
+        path: /etc/sudoers
+        line: 'automation ALL=(ALL:ALL) NOPASSWD:ALL'
+        validate: 'visudo -cf %s'
+
+    - name: makde directory
+      ansible.builtin.file:
+        path: /home/automation/.ssh
+        state: directory
+        owner: automation
+        group: automation
+
+    - name: Create an empty file
+      ansible.builtin.file:
+        path: /home/automation/.ssh/authorized_keys
+        state: touch
+        owner: automation
+        group: automation
+
+
+
+    - name: Copy the ssh key
+      ansible.builtin.copy:
+        src: /home/automation/.ssh/id_rsa.pub
+        dest: /home/automation/.ssh/authorized_keys
+

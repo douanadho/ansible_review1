@@ -1,0 +1,14 @@
+
+---
+- name: Configure SSH Server
+  hosts: all
+  become: true
+  tasks:
+
+    - name: Configure ssh deamon
+      ansible.builtin.blockinfile:
+        path: /etc/ssh/sshd_config
+        block: |
+          Banner /etc/motd
+          X11Forwarding no
+          MaxAuthTries 3

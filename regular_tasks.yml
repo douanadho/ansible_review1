@@ -1,0 +1,17 @@
+
+---
+- name: Schedule Tasks
+  hosts: proxy
+  become: true
+  tasks:
+    - name: Creates a cron file under /etc/cron.d
+      ansible.builtin.cron:
+        name: Current date and time
+        weekday: "1-5"
+        minute: "*/2"
+        hour: "9-17"
+        user: automation
+        job: "date > /var/log/time.log"
+        cron_file: add-date-time
+        state: present
+

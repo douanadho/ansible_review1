@@ -1,0 +1,78 @@
+
+---
+- name: Test the play
+  hosts: database
+  become: true
+  vars_files:
+    - secret.yml
+  tasks:
+    - name: Create a new primary partition with a size of 800M
+      community.general.parted:
+        device: /dev/nvme0n2
+        number: 1
+        state: present
+        part_end: 800M
+
+    - name: Create a volume group called vg_database
+      community.general.lvg:
+        vg: vg_database
+        pvs: /dev/nvme0n2p1
+        #pesize: 32
+
+    - name: Create a logical volume of 512m
+      community.general.lvol:
+        vg: vg_database
+        lv: lv_mysql
+        size: 512m
+
+
+    - name: Create a xfs filesystem on /dev/vg_database/lv_mysql
+      community.general.filesystem:
+        fstype: xfs
+        dev: /dev/vg_database/lv_mysql
+
+    - name: Change file ownership, group and permissions
+      ansible.builtin.file:
+        path: /mnt/mysql_backups
+        state: directory
+
+    - name: Mount up device by label
+      ansible.posix.mount:
+        path: /mnt/mysql_backups
+        src: /dev/vg_database/lv_mysql
+        fstype: xfs
+        state: present
+
+    - name: Ensure that mariadb package is installed
+      ansible.builtin.dnf:
+        name: "{{ item }}"
+        state: latest
+      with_items:
+        - mariadb
+        - firewalld
+
+
+    - name: Ensure Firewalld serverice is up and running
+      ansible.builtin.service:
+        name: firewalld
+        state: enabled
+
+    - name: Permit mysql traffic over port 3306
+      ansible.posix.firewalld:
+        port: 3306/tcp
+        permanent: true
+        state: enabled
+
+    - name: Set root password
+      community.mysql.mysql_user:
+        name: root
+        password: "{{ database_password  }}"
+        #priv: '*.*:ALL'
+        #state: present
+
+    - name: Ensue sql service is started
+      ansible.builtin.service:
+        name: mariadb
+        state: started
+        enabled: yes
+

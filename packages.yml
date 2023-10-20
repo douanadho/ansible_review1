@@ -1,0 +1,21 @@
+---
+- name: Install packages
+  hosts: all
+  become: yes
+  tasks:
+    - name: Installs tcpdump and mailx packages on hosts in the proxy host groups
+      ansible.builtin.dnf:
+        name:
+          - tcpdump
+          - s-nail
+        state: latest
+      when: inventory_hostname in groups['proxy']
+
+    - name: Installs lsof and mailx and packages on hosts in the database host groups
+      ansible.builtin.dnf:
+        name:
+          - lsof
+          - s-nail
+        state: latest
+      when: "'database' in group_names"
+

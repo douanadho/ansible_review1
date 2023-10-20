@@ -1,0 +1,39 @@
+
+---
+- name: Users and Group Management
+  hosts: webservers,database
+  become: true
+  vars_files:
+    - secret.yml
+    - user_list.yml
+  tasks:
+
+    - name: Create users who uid start with 1
+      ansible.builtin.user:
+        name: "{{ item.username }}" 
+        password: "{{ user_password | password_hash('sha512') }}"
+        shell: /bin/bash
+        groups: wheel
+        append: yes
+        state: present
+        update_password: on_create
+      with_items: "{{ users }}"
+      when: 
+        - "'webservers' in group_names" 
+        - "item.uid|string|first == '1'"
+
+
+    - name: Create users who uid start with 1
+      ansible.builtin.user:
+        name: "{{ item.username }}"
+        password: "{{ user_password | password_hash('sha512') }}"
+        shell: /bin/bash
+        groups: wheel
+        append: yes
+        state: present
+        update_password: on_create
+      with_items: "{{ users }}"
+      when:
+        - "'database' in group_names"
+        - "item.uid|string|first == '2'"
+

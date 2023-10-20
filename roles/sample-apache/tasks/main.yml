@@ -1,0 +1,33 @@
+---
+# tasks file for sample-apache
+- name: Install all the packages
+  ansible.builtin.dnf:
+    name: "{{ item }}"
+    state: latest
+  loop:
+    - httpd
+    - mod_ssl
+    - php
+    - firewalld
+- name: Ensure Apache and firewalld running
+  ansible.builtin.service:
+    name: "{{ item }}"
+    state: started
+    enabled: yes
+  loop:
+    - httpd
+    - firewalld
+- name: firewall is allowing traffic
+  ansible.posix.firewalld:
+    port: "{{ item }}"
+    permanent: yes
+    immediate: yes
+    state: enabled
+  loop:
+    - "80/tcp"
+    - "443/tcp"
+- name: Index content
+  ansible.builtin.template:
+    src: index.html.j2
+    dest:  /var/www/html/index.html
+  notify: restart_apache
